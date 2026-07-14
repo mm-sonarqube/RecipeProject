@@ -133,6 +133,7 @@ class MyApp extends StatelessWidget {
           create: (context) => RecipeListCubit(
             getRecipesUseCase: getRecipes,
             toggleBookmarkUseCase: toggleBookmark,
+            
           ),
         ),
         BlocProvider<SettingsCubit>(
