@@ -5,77 +5,35 @@ on:
     branches:
       - main
 
+
 jobs:
   build:
     name: Build and analyze
     runs-on: ubuntu-latest
-    
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Disable shallow clones for better Sonar analysis relevancy
 
-      # 1. Set up Java (Required for both Gradle & Sonar)
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
         with:
           java-version: 17
-          distribution: 'zulu'
-
-      # 2. Install and Cache Flutter (Required so Gradle can compile Flutter plugins)
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          cache: true
-
-      # 3. Get Flutter dependencies (Ensures android/ plugins are auto-generated)
-      - name: Install Flutter Dependencies
-        run: flutter pub get
-
-      # 4. Cache SonarQube packages
+          distribution: 'zulu' # Alternative distribution options are available.
       - name: Cache SonarQube packages
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
-
-      # 5. Cache Gradle packages
       - name: Cache Gradle packages
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/android/**/*.gradle*', '**/android/gradle/wrapper/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
           restore-keys: ${{ runner.os }}-gradle
-
-      # 6. Locate, Make Executable, and Build Android / Sonar
-      - name: Find and Run Gradle Build & Sonar
+      - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: |
-          # Dynamically locate where 'gradlew' is hiding in your project
-          GRADLEW_PATH=$(find . -name "gradlew" -print -quit)
-          
-          if [ -z "$GRADLEW_PATH" ]; then
-            echo "::error::Could not find 'gradlew' script. Make sure your 'android' folder is fully committed to Git."
-            exit 1
-          fi
-          
-          # Extract directory containing gradlew
-          GRADLE_DIR=$(dirname "$GRADLEW_PATH")
-          echo "Found gradlew at: $GRADLEW_PATH"
-          
-          # Make executable
-          chmod +x "$GRADLEW_PATH"
-          
-          # Change directory to the android folder
-          cd "$GRADLE_DIR"
-          
-          # Pass ANDROID_HOME path explicitly so Gradle can locate the Android SDK
-          export ANDROID_HOME=$ANDROID_SDK_ROOT
-          
-          # Run the build and sonar scanner task. 
-          # Using 'assembleDebug' is much faster and cleaner than 'build' for Android CI.
-          ./gradlew assembleDebug sonar --info
+        run: ./gradlew build sonar --info
