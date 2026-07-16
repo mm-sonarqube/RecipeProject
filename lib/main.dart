@@ -136,7 +136,7 @@ class MyApp extends StatelessWidget {
 
           ),
         ),
-        
+
         
         BlocProvider<SettingsCubit>(
           create: (context) => SettingsCubit(
