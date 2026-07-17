@@ -57,11 +57,8 @@ jobs:
         shell: powershell
 
       - name: Run SonarQube Scan
-        run: |
-          sonar-scanner.bat `
-            -Dsonar.token="${{ secrets.SONAR_TOKEN }}" `
-            -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
-        shell: powershell
+        run: sonar-scanner.bat -Dsonar.token="${{ secrets.SONAR_TOKEN }}" -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
+        shell: cmd
 
       # 7. Build the release APK
       - name: Build APK
