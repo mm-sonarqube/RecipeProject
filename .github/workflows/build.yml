@@ -28,12 +28,40 @@ jobs:
       - name: Run Tests with Coverage
         run: flutter test --coverage
 
-      # 6. SonarQube Scan
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v2
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      # 6. Cache and run SonarQube Scan natively on Windows
+      - name: Cache SonarQube Scanner
+        id: cache-sonar-scanner
+        uses: actions/cache@v4
+        with:
+          path: sonar-scanner
+          key: ${{ runner.os }}-sonar-scanner-6.2.1.4610-x64
+          restore-keys: |
+            ${{ runner.os }}-sonar-scanner-
+
+      - name: Download SonarScanner if not cached
+        if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
+        run: |
+          Write-Host "Downloading SonarScanner..."
+          Invoke-WebRequest -Uri "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-windows-x64.zip" -OutFile "sonar-scanner.zip"
+          Write-Host "Extracting SonarScanner..."
+          Expand-Archive -Path "sonar-scanner.zip" -DestinationPath "sonar-scanner-temp"
+          Move-Item -Path "sonar-scanner-temp/sonar-scanner-*-windows-x64" -Destination "sonar-scanner"
+          Remove-Item -Path "sonar-scanner-temp" -Recurse -Force
+          Remove-Item -Path "sonar-scanner.zip" -Force
+        shell: powershell
+
+      - name: Add SonarScanner to PATH
+        run: |
+          $scannerPath = (Resolve-Path "sonar-scanner/bin").Path
+          echo "$scannerPath" >> $env:GITHUB_PATH
+        shell: powershell
+
+      - name: Run SonarQube Scan
+        run: |
+          sonar-scanner.bat `
+            -Dsonar.token="${{ secrets.SONAR_TOKEN }}" `
+            -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
+        shell: powershell
 
       # 7. Build the release APK
       - name: Build APK
