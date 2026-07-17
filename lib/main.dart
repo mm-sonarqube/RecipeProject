@@ -158,7 +158,7 @@ class MyApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             themeMode: currentThemeMode,
 
-            //Theme Data
+            //Theme Data 2
             theme: ThemeData(
               useMaterial3: true,
               colorScheme: ColorScheme.fromSeed(

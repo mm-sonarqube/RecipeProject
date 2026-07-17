@@ -11,7 +11,7 @@ on:
 jobs:
   build-test-scan:
     name: Build, Test & Scan
-    runs-on: [self-hosted]
+    runs-on: [self-hosted, Windows, X64]
     steps:
       # 1. Checkout the code with full history for SonarQube to track blame/authorship
       - name: Checkout Code
