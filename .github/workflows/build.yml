@@ -29,7 +29,7 @@ jobs:
 
       # 4. Execute the scan using your dedicated local E:\ SonarQube installation
       - name: Run SonarQube Scan
-        run: E:\sonarqube-26.7.0.124771\bin\sonar-scanner.bat -Dsonar.token="${{ secrets.SONAR_TOKEN }}" -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
+        run: E:\sonarqube-26.7.0.124771\bin\windows-x86-64\sonar-scanner.bat -Dsonar.token="${{ secrets.SONAR_TOKEN }}" -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
         shell: cmd
 
       # 5. Build the release APK
