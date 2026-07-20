@@ -27,11 +27,11 @@ jobs:
       - name: Run Tests with Coverage
         run: flutter test --coverage
 
-      # 4. Generate native Flutter Analysis and translate to generic Sonar layout
+      # 4. Run native Flutter analysis and convert to SonarQube generic format
       - name: Generate Lint Issues Report
         run: |
-          Write-Host "Running native Flutter analysis..."
-          # Run analysis safely so exit codes don't trip the engine early
+          Write-Host "Running native Flutter static analysis..."
+          # Start process safely so lint counts don't trip the workflow failure flag prematurely
           $proc = Start-Process flutter -ArgumentList "analyze --machine" -NoNewWindow -PassThru -RedirectStandardOutput "flutter-analysis.json"
           $proc.WaitForExit()
           
@@ -46,7 +46,7 @@ jobs:
                       if ($item.severity -eq "WARNING") { $sev = "MAJOR" }
                       if ($item.severity -eq "ERROR") { $sev = "CRITICAL" }
           
-                      # Re-map workspace paths safely into clean relative URLs
+                      # Re-map absolute workspace paths to clean relative paths
                       $relativeFile = $item.location.file.Replace("$pwd\", "").Replace("\", "/")
           
                       $sonarIssues += @{
@@ -73,7 +73,7 @@ jobs:
           }
         shell: powershell
 
-      # 5. Download the latest modern Scanner CLI tool
+      # 5. Download the latest standard SonarScanner CLI (No longer bound to older versions!)
       - name: Download SonarScanner CLI
         run: |
           Write-Host "Downloading the scanner tool..."
@@ -90,7 +90,7 @@ jobs:
           Remove-Item -Path "sonar-scanner-temp" -Recurse -Force
         shell: powershell
 
-      # 6. Run the Scan using the imported externalIssuesReportPaths flag
+      # 6. Run SonarQube Scan pointing to the generic issues file
       - name: Run SonarQube Scan
         run: |
           & "my-scanner\bin\sonar-scanner.bat" `
