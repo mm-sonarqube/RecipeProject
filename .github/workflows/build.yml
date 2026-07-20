@@ -27,19 +27,62 @@ jobs:
       - name: Run Tests with Coverage
         run: flutter test --coverage
 
-      # 4. Download and unzip a COMPATIBLE Scanner CLI tool (v5.0.1) for the Community Plugin
+      # 4. Run native Flutter analysis and convert to SonarQube generic format
+      - name: Generate Lint Issues Report
+        run: |
+          Write-Host "Running native Flutter static analysis..."
+          # Start process safely so lint counts don't trip the workflow failure flag prematurely
+          $proc = Start-Process flutter -ArgumentList "analyze --machine" -NoNewWindow -PassThru -RedirectStandardOutput "flutter-analysis.json"
+          $proc.WaitForExit()
+          
+          if (Test-Path "flutter-analysis.json") {
+              $raw = Get-Content "flutter-analysis.json" -Raw
+              if ($raw -match "\[.*\]") {
+                  $data = ConvertFrom-Json $Matches[0]
+                  $sonarIssues = @()
+          
+                  foreach ($item in $data) {
+                      $sev = "INFO"
+                      if ($item.severity -eq "WARNING") { $sev = "MAJOR" }
+                      if ($item.severity -eq "ERROR") { $sev = "CRITICAL" }
+          
+                      # Re-map absolute workspace paths to clean relative paths
+                      $relativeFile = $item.location.file.Replace("$pwd\", "").Replace("\", "/")
+          
+                      $sonarIssues += @{
+                          engineId = "flutter-linter"
+                          ruleId = $item.code
+                          severity = $sev
+                          type = "CODE_SMELL"
+                          primaryLocation = @{
+                              message = $item.problemMessage
+                              filePath = $relativeFile
+                              textRange = @{
+                                  startLine = [int]$item.location.line
+                                  startColumn = [int]$item.location.column
+                                  endLine = [int]$item.location.line
+                                  endColumn = [int]($item.location.column + $item.location.length)
+                              }
+                          }
+                      }
+                  }
+                  @{ issues = $sonarIssues } | ConvertTo-Json -Depth 10 | Set-Content "sonar-issues.json"
+              } else {
+                  @{ issues = @() } | ConvertTo-Json | Set-Content "sonar-issues.json"
+              }
+          }
+        shell: powershell
+
+      # 5. Download the latest standard SonarScanner CLI (No longer bound to older versions!)
       - name: Download SonarScanner CLI
         run: |
           Write-Host "Downloading the scanner tool..."
-          # Clean up old installations if they exist from a previous failed run
           if (Test-Path "my-scanner") { Remove-Item -Path "my-scanner" -Recurse -Force }
           if (Test-Path "sonar-scanner-temp") { Remove-Item -Path "sonar-scanner-temp" -Recurse -Force }
           
-          # Using 5.0.1.3006 to maintain compatibility with the community plugin
-          Invoke-WebRequest -Uri "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-windows.zip" -OutFile "sonar-scanner.zip"
+          Invoke-WebRequest -Uri "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-windows-x64.zip" -OutFile "sonar-scanner.zip"
           Expand-Archive -Path "sonar-scanner.zip" -DestinationPath "sonar-scanner-temp"
           
-          # Move the nested folder out and clean up zip resources
           $extractedFolder = Get-ChildItem -Path "sonar-scanner-temp" | Select-Object -First 1
           Move-Item -Path $extractedFolder.FullName -Destination "my-scanner"
           
@@ -47,17 +90,20 @@ jobs:
           Remove-Item -Path "sonar-scanner-temp" -Recurse -Force
         shell: powershell
 
-      # 5. Run the scan using PowerShell with fully quoted arguments to prevent parameter splitting
+      # 6. Run SonarQube Scan pointing to the generic issues file
       - name: Run SonarQube Scan
         run: |
-          & "my-scanner\bin\sonar-scanner.bat" "-Dsonar.token=${{ secrets.SONAR_TOKEN }}" "-Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}"
+          & "my-scanner\bin\sonar-scanner.bat" `
+            "-Dsonar.token=${{ secrets.SONAR_TOKEN }}" `
+            "-Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}" `
+            "-Dsonar.externalIssuesReportPaths=sonar-issues.json"
         shell: powershell
 
-      # 6. Build the release APK
+      # 7. Build the release APK
       - name: Build APK
         run: flutter build apk --release
 
-      # 7. Upload APK as a downloadable artifact
+      # 8. Upload APK as a downloadable artifact
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
