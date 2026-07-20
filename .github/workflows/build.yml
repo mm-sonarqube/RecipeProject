@@ -13,7 +13,7 @@ jobs:
     name: Build, Test & Scan
     runs-on: [self-hosted, Windows, X64]
     steps:
-      # 1. Checkout the code with full history for SonarQube to track blame/authorship
+      # 1. Checkout the code
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
@@ -27,16 +27,27 @@ jobs:
       - name: Run Tests with Coverage
         run: flutter test --coverage
 
-      # 4. Run the scanner from its dedicated, permanent E:\ folder path location
+      # 4. Download and unzip the clean Scanner CLI tool automatically
+      - name: Download SonarScanner CLI
+        run: |
+          Write-Host "Downloading the scanner tool..."
+          Invoke-WebRequest -Uri "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-windows-x64.zip" -OutFile "sonar-scanner.zip"
+          Expand-Archive -Path "sonar-scanner.zip" -DestinationPath "sonar-scanner-temp"
+          Move-Item -Path "sonar-scanner-temp/sonar-scanner-*-windows-x64" -Destination "my-scanner"
+          Remove-Item -Path "sonar-scanner-temp" -Recurse -Force
+          Remove-Item -Path "sonar-scanner.zip" -Force
+        shell: powershell
+
+      # 5. Run the scan using the exact local folder we just downloaded
       - name: Run SonarQube Scan
-        run: sonar-scanner.bat -Dsonar.token="${{ secrets.SONAR_TOKEN }}" -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
+        run: my-scanner\bin\sonar-scanner.bat -Dsonar.token="${{ secrets.SONAR_TOKEN }}" -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
         shell: cmd
 
-      # 5. Build the release APK
+      # 6. Build the release APK
       - name: Build APK
         run: flutter build apk --release
 
-      # 6. Upload APK as a downloadable artifact
+      # 7. Upload APK as a downloadable artifact
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
