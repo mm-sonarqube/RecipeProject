@@ -19,16 +19,15 @@ jobs:
         with:
           fetch-depth: 0
 
-
-      # 4. Install project packages
+      # 2. Install project packages
       - name: Install Dependencies
         run: flutter pub get
 
-      # 5. Run tests and export lcov.info
+      # 3. Run tests and export lcov.info
       - name: Run Tests with Coverage
         run: flutter test --coverage
 
-      # 6. Cache and run SonarQube Scan natively on Windows
+      # 4. Cache and run SonarQube Scan natively on Windows
       - name: Cache SonarQube Scanner
         id: cache-sonar-scanner
         uses: actions/cache@v4
@@ -38,6 +37,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-sonar-scanner-
 
+      # 5. Download and extract the scanner if it's missing from the cache
       - name: Download SonarScanner if not cached
         if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
         run: |
@@ -50,15 +50,13 @@ jobs:
           Remove-Item -Path "sonar-scanner.zip" -Force
         shell: powershell
 
-      - name: Add SonarScanner to PATH
-        run: |
-          $scannerPath = (Resolve-Path "sonar-scanner/bin").Path
-          echo "$scannerPath" >> $env:GITHUB_PATH
-        shell: powershell
-
+      # 6. Execute the scan using explicit relative paths to prevent 'command not found' errors
       - name: Run SonarQube Scan
-        run: sonar-scanner.bat -Dsonar.token="${{ secrets.SONAR_TOKEN }}" -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
-        shell: cmd
+        run: |
+          .\sonar-scanner\bin\sonar-scanner.bat `
+            -Dsonar.token="${{ secrets.SONAR_TOKEN }}" `
+            -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
+        shell: powershell
 
       # 7. Build the release APK
       - name: Build APK
