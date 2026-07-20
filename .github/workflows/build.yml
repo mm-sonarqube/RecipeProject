@@ -43,6 +43,7 @@ jobs:
         run: my-scanner\bin\sonar-scanner.bat -Dsonar.token="${{ secrets.SONAR_TOKEN }}" -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
         shell: cmd
 
+   
       # 6. Build the release APK
       - name: Build APK
         run: flutter build apk --release
