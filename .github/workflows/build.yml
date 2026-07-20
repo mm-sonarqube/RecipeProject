@@ -31,19 +31,26 @@ jobs:
       - name: Download SonarScanner CLI
         run: |
           Write-Host "Downloading the scanner tool..."
+          # Clean up old installations if they exist from a previous failed self-hosted run
+          if (Test-Path "my-scanner") { Remove-Item -Path "my-scanner" -Recurse -Force }
+          if (Test-Path "sonar-scanner-temp") { Remove-Item -Path "sonar-scanner-temp" -Recurse -Force }
+          
           Invoke-WebRequest -Uri "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-windows-x64.zip" -OutFile "sonar-scanner.zip"
           Expand-Archive -Path "sonar-scanner.zip" -DestinationPath "sonar-scanner-temp"
-          Move-Item -Path "sonar-scanner-temp/sonar-scanner-*-windows-x64" -Destination "my-scanner"
-          Remove-Item -Path "sonar-scanner-temp" -Recurse -Force
+          
+          # Explicitly grab the nested folder and move its contents
+          $extractedFolder = Get-ChildItem -Path "sonar-scanner-temp" | Select-Object -First 1
+          Move-Item -Path $extractedFolder.FullName -Destination "my-scanner"
+          
           Remove-Item -Path "sonar-scanner.zip" -Force
         shell: powershell
 
-      # 5. Run the scan using the exact local folder we just downloaded
+      # 5. Run the scan using PowerShell for cleaner execution tracking
       - name: Run SonarQube Scan
-        run: my-scanner\bin\sonar-scanner.bat -Dsonar.token="${{ secrets.SONAR_TOKEN }}" -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
-        shell: cmd
+        run: |
+          & "my-scanner\bin\sonar-scanner.bat" -Dsonar.token="${{ secrets.SONAR_TOKEN }}" -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
+        shell: powershell
 
-   
       # 6. Build the release APK
       - name: Build APK
         run: flutter build apk --release
