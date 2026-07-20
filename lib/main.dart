@@ -146,6 +146,7 @@ class MyApp extends StatelessWidget {
           )..loadSettings(),
         ),
       ],
+
       child: BlocBuilder<SettingsCubit, SettingsState>(
         builder: (context, settingsState) {
           ThemeMode currentThemeMode = ThemeMode.system;
