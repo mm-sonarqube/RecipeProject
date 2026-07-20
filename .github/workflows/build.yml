@@ -27,39 +27,16 @@ jobs:
       - name: Run Tests with Coverage
         run: flutter test --coverage
 
-      # 4. Cache and run SonarQube Scan natively on Windows
-      - name: Cache SonarQube Scanner
-        id: cache-sonar-scanner
-        uses: actions/cache@v4
-        with:
-          path: sonar-scanner
-          key: ${{ runner.os }}-sonar-scanner-6.2.1.4610-x64
-          restore-keys: |
-            ${{ runner.os }}-sonar-scanner-
-
-      # 5. Download and extract the scanner if it's missing from the cache
-      - name: Download SonarScanner if not cached
-        if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
-        run: |
-          Write-Host "Downloading SonarScanner..."
-          Invoke-WebRequest -Uri "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-windows-x64.zip" -OutFile "sonar-scanner.zip"
-          Write-Host "Extracting SonarScanner..."
-          Expand-Archive -Path "sonar-scanner.zip" -DestinationPath "sonar-scanner-temp"
-          Move-Item -Path "sonar-scanner-temp/sonar-scanner-*-windows-x64" -Destination "sonar-scanner"
-          Remove-Item -Path "sonar-scanner-temp" -Recurse -Force
-          Remove-Item -Path "sonar-scanner.zip" -Force
-        shell: powershell
-
-      # 6. Execute the scan using explicit relative paths on a single line to prevent parsing bugs
+      # 4. Execute the scan using your dedicated local E:\ SonarQube installation
       - name: Run SonarQube Scan
-        run: .\sonar-scanner\bin\sonar-scanner.bat -Dsonar.token="${{ secrets.SONAR_TOKEN }}" -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
-        shell: powershell
+        run: E:\sonarqube-26.7.0.124771\bin\sonar-scanner.bat -Dsonar.token="${{ secrets.SONAR_TOKEN }}" -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
+        shell: cmd
 
-      # 7. Build the release APK
+      # 5. Build the release APK
       - name: Build APK
         run: flutter build apk --release
 
-      # 8. Upload APK as a downloadable artifact
+      # 6. Upload APK as a downloadable artifact
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
