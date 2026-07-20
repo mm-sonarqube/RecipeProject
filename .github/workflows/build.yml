@@ -50,12 +50,9 @@ jobs:
           Remove-Item -Path "sonar-scanner.zip" -Force
         shell: powershell
 
-      # 6. Execute the scan using explicit relative paths to prevent 'command not found' errors
+      # 6. Execute the scan using explicit relative paths on a single line to prevent parsing bugs
       - name: Run SonarQube Scan
-        run: |
-          .\sonar-scanner\bin\sonar-scanner.bat `
-            -Dsonar.token="${{ secrets.SONAR_TOKEN }}" `
-            -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
+        run: .\sonar-scanner\bin\sonar-scanner.bat -Dsonar.token="${{ secrets.SONAR_TOKEN }}" -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
         shell: powershell
 
       # 7. Build the release APK
