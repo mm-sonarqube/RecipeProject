@@ -29,7 +29,7 @@ jobs:
 
       # 4. Run the scanner from its dedicated, permanent E:\ folder path location
       - name: Run SonarQube Scan
-        run: E:\sonar-scanner-cli\bin\sonar-scanner.bat -Dsonar.token="${{ secrets.SONAR_TOKEN }}" -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
+        run: sonar-scanner.bat -Dsonar.token="${{ secrets.SONAR_TOKEN }}" -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
         shell: cmd
 
       # 5. Build the release APK
