@@ -45,10 +45,10 @@ jobs:
           Remove-Item -Path "sonar-scanner.zip" -Force
         shell: powershell
 
-      # 5. Run the scan using PowerShell for cleaner execution tracking
+      # 5. Run the scan using PowerShell with fully quoted arguments
       - name: Run SonarQube Scan
         run: |
-          & "my-scanner\bin\sonar-scanner.bat" -Dsonar.token="${{ secrets.SONAR_TOKEN }}" -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}"
+          & "my-scanner\bin\sonar-scanner.bat" "-Dsonar.token=${{ secrets.SONAR_TOKEN }}" "-Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}"
         shell: powershell
 
       # 6. Build the release APK
