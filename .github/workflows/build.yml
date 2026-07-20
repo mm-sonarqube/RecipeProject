@@ -27,25 +27,27 @@ jobs:
       - name: Run Tests with Coverage
         run: flutter test --coverage
 
-      # 4. Download and unzip the clean Scanner CLI tool automatically
+      # 4. Download and unzip a COMPATIBLE Scanner CLI tool (v5.0.1) for the Community Plugin
       - name: Download SonarScanner CLI
         run: |
           Write-Host "Downloading the scanner tool..."
-          # Clean up old installations if they exist from a previous failed self-hosted run
+          # Clean up old installations if they exist from a previous failed run
           if (Test-Path "my-scanner") { Remove-Item -Path "my-scanner" -Recurse -Force }
           if (Test-Path "sonar-scanner-temp") { Remove-Item -Path "sonar-scanner-temp" -Recurse -Force }
           
-          Invoke-WebRequest -Uri "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-windows-x64.zip" -OutFile "sonar-scanner.zip"
+          # Using 5.0.1.3006 to maintain compatibility with the community plugin
+          Invoke-WebRequest -Uri "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-windows.zip" -OutFile "sonar-scanner.zip"
           Expand-Archive -Path "sonar-scanner.zip" -DestinationPath "sonar-scanner-temp"
           
-          # Explicitly grab the nested folder and move its contents
+          # Move the nested folder out and clean up zip resources
           $extractedFolder = Get-ChildItem -Path "sonar-scanner-temp" | Select-Object -First 1
           Move-Item -Path $extractedFolder.FullName -Destination "my-scanner"
           
           Remove-Item -Path "sonar-scanner.zip" -Force
+          Remove-Item -Path "sonar-scanner-temp" -Recurse -Force
         shell: powershell
 
-      # 5. Run the scan using PowerShell with fully quoted arguments
+      # 5. Run the scan using PowerShell with fully quoted arguments to prevent parameter splitting
       - name: Run SonarQube Scan
         run: |
           & "my-scanner\bin\sonar-scanner.bat" "-Dsonar.token=${{ secrets.SONAR_TOKEN }}" "-Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}"
